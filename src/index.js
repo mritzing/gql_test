@@ -1,15 +1,6 @@
-const {GraphQLServer} = require('graphql-yoga')
+const {GraphQLServer} = require('graphql-yoga');
+const {prisma} = require('./generated/prisma-client');
 
-//define graphQL schema 
-// ex one query type with String! (! means never null)
-
-//dummy data 
-let links = [{
-    id: 'link-0',
-    url: 'github.com/mritzing',
-    description: 'Testing graphql server'
-}]
-let idCount = links.length
 //implementation of graphql schema 
 /*** ex queries / mutations
 query{
@@ -28,47 +19,47 @@ mutation {
     id
   }
 }
-
-
  */
 const resolvers = {
     Query: {
         info: () => 'API of test graphql server',
-        feed: () => links,
-        link: (parent, args) =>links[args.id],
+        feed: (root, args, context, info) => {
+            return context.prisma.links();
+        },
+        //link: (parent, args) =>links[args.id],
     },
     Mutation: {
-        post: (parent, args) => {
-            const link = {
-                id: `link-${idCount++}`,
-                description: args.description,
+        post: (parent, args, context) => {
+            return context.prisma.createLink({
                 url: args.url,
-            }
-            links.push(link)
-            return link
+                description: args.description,
+            });
         },
+        /**
         updateLink: (parent, args) => {
             const link = {
                 id: `link-${args.id}`,
                 description: args.description,
                 url: args.url,
-            }
-            links[args.id] = link
-            return link
+            };
+            links[args.id] = link;
+            return link;
         },
         deleteLink: (parents, args) => {
             const delLink = links[args.id]
-            links.splice(args.id, 1)
-            return delLink
+            links.splice(args.id, 1);
+            return delLink;
         }
+         */
     }
-}
+};
 
 // makes server
 const server = new GraphQLServer({
     typeDefs: './src/schema.graphql',
     resolvers,
-})
+    context: {prisma},
+});
 
-server.start(() => console.log(`Server is running on http://localhost:4000`))
+server.start(() => console.log(`Server is running on http://localhost:4000`));
 
